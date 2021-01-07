@@ -1,8 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[220]:
-
 
 import numpy as np
 import pandas as pd
@@ -66,6 +61,7 @@ def range_parser(long_string):
             coord = card_to_coord(card)
             array[coord[0],coord[1]]=setting
     return array        
+
 def card_to_coord(card):
     dict_ = {'A':0,'K':1,'Q':2,'J':3,'T':4,'9':5,'8':6,'7':7,'6':8,'5':9,'4':10,'3':11,'2':12}
     if len(card)==3:
@@ -89,16 +85,10 @@ def hyphen_to_intervals(str_):
         lower = dict_[str_[5]]
         return [root,upper,lower,type_]
     
-        
-        
-
-
-# In[240]:
-
-
 def cooling_schedule(k,k_max):
     T_top = 10**6
     return k*(0-10**6)/k_max
+
 def transition_function(E_new,E_previous,T):
     k_b = 1.38*(10**(-23))
     if E_new<E_previous:
@@ -108,6 +98,7 @@ def transition_function(E_new,E_previous,T):
             return 1
         else:
             return 0 
+
 def find_available(num,abstraction):
     lis = [i/abstraction for i in range(abstraction+1)]
     if num in lis:
@@ -115,6 +106,7 @@ def find_available(num,abstraction):
     for i in range(len(lis)):
         if lis[i]>num:
             return [lis[i-1],lis[i]]
+
 def comb_matrixer():
     comb_matrix = np.zeros([13,13])
     for i in range(13):
@@ -154,91 +146,6 @@ def simulated_annealing(max_iters,init_range,action_range,ground_truth_frequenci
             continue
     return s
 
-    
-    
-        
-        
-        
-        
-        
-        
-
-
-# In[248]:
-
-
 def range_arr_to_dataframe(arr):
     return pd.DataFrame(arr,columns = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'],index = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'])
-
-
-# In[ ]:
-
-
-
-
-
-# In[244]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
 
