@@ -164,10 +164,11 @@ def simulated_annealing(max_iters,init_range,action_range,ground_truth_frequenci
         
 
 
-# In[ ]:
+# In[248]:
 
 
-
+def range_arr_to_dataframe(arr):
+    return pd.DataFrame(arr,columns = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'],index = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'])
 
 
 # In[ ]:
