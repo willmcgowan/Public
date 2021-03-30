@@ -15,7 +15,7 @@ def payoff_constructor(n_players,choices_vect,construction_func):
     return arr
     
 def sym_dirichlet(n):
-    return np.random.dirichlet([1 for i in range(n)])
+    return np.random.dirichlet([1 for i in range(n)])-np.array([1/n for i in range(n)])
 
 def two_zero(n):
     choice = random.sample([i for i in range(n)],2)
