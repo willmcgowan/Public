@@ -55,7 +55,8 @@ def evolve(payoff_tensor,strategies,player,gamma):
     var = normalise(var)
     return var
 
-
+def normalise(v):
+    return v/v.sum()
 
 def tensor_grad_descent(payoff_tensor,init_strategies,iters,gamma,noise):
     print("Init Expected Utility:")
