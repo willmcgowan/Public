@@ -21,34 +21,32 @@ import torch
 def payoff_constructor(n_players,choices_vect,construction_func):
     arr = np.zeros(choices_vect+[n_players])
     for p in itertools.product(*[[i for i in range(j)]for j in choices_vect]):
-        arr[p]=construction_func(n_players)
+        arr[p]=construction_func(p,n_players)
     return arr
 
-def sym_dirichlet(n):
+def sym_dirichlet(p,n):
     return np.random.dirichlet([1 for i in range(n)])-np.array([1/n for i in range(n)])
 
-def two_zero(n):
+def two_zero(p,n):
     choice = random.sample([i for i in range(n)],2)
     var = np.zeros(n)
     var[choice[0]]=1
     var[choice[1]]=-1
     return var
 
-def three_player_rochambo(p):
-    count = collections.Counter(p)
-    if count[0]==1 & count[1]==1 & count[2]==1:
-        return np.zeros(3)
-    elif count[0]==3 or count[1]==3 or count[2]==3:
-        return np.zeros(3)
+def n_player_rochambo(p,n):
+    p = np.array(list(p))
+    count = [np.count_nonzero(p==i) for i in range(n)]
+    if count[0]>0 and count[1]>0 and count[2]>0:
+        return np.zeros(n)
+    elif count[0]==n or count[1]==n or count[2]==n:
+        return np.zeros(n)
     elif count[0]==0:
         return np.array([count[1]/count[2] if i ==2 else -1 for i in p])
     elif count[1]==0:
         return np.array([count[2]/count[0] if i==0 else -1 for i in p])
     elif count[2]==0:
         return np.array([count[0]/count[1] if i==1 else -1 for i in p])
-    
-    
-
 
 def expectation(payoff_tensor,strategies):
     result = np.zeros(payoff_tensor.shape[-1])
@@ -73,11 +71,6 @@ def grad(payoff_tensor,strategies,player):
                     var*=1
             res[i]+=var*payoff_tensor[p][player]
     return res
-
-
-
-
-
 
 def evolve(payoff_tensor,strategies,player,gamma):
     var = strategies[player]+gamma*grad(payoff_tensor,strategies,player)
