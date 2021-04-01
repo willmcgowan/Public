@@ -194,8 +194,8 @@ def normalize(matrix):
     for i in range(matrix.shape[0]):
         if sums[i]==0:
             sums[i]=1
-            matrix[i,:]=np.random.dirichlet([1 for i in range(matrix.shape[0])])
-    newsum = np.array([np.array([sums[i] for j in range(matrix.shape[0])])for i in range(3)])
+            matrix[i,:]=np.random.dirichlet([1 for i in range(matrix.shape[1])])
+    newsum = np.array([np.array([sums[i] for j in range(matrix.shape[1])])for i in range(matrix.shape[0])])
     return matrix/newsum
     
         
