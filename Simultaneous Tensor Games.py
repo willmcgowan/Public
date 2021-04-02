@@ -1,8 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[177]:
-
 
 from numba import njit,jit
 import numpy as np
@@ -11,11 +6,7 @@ import itertools
 import matplotlib.pyplot as plt
 import cProfile
 import collections
-import torch
-
-
-# In[536]:
-
+import copy
 
 
 def payoff_constructor(n_players,choices_vect,construction_func):
@@ -116,7 +107,9 @@ def optimiser(payoff_tensor,init_strategies,learning_rate,iters,noise_param):
     n_players = init_strategies.shape[0]
     n_choices = init_strategies.shape[1]
     history = np.zeros([iters,n_players,n_choices])
-    strategies = normalize(init_strategies)
+    strategies = np.zeros([n_players,n_choices])
+    for i in range(n_players):
+        strategies[i]=n_simplex_proj(init_strategies[i])
     for i in range(iters):
         for j in range(n_players):
             history[i,j]=strategies[j,:]
