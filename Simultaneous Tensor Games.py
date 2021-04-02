@@ -49,83 +49,32 @@ def n_player_rochambo(p,n):
         return np.array([count[0]/count[1] if i==1 else -1 for i in p])
 
 def expectation(payoff_tensor,strategies):
-    result = np.zeros(payoff_tensor.shape[-1])
-    for p in itertools.product(*[[i for i in range(j)]for j in payoff_tensor.shape[:-1]]):
-        var = 1
-        for player in range(len(strategies)):
-            var*=strategies[player][p[player]]
-        for player in range(len(strategies)):
-            result[player]+= var*payoff_tensor[p][player]
+    reform = np.array(strategies)
+    tensor = np.multiply.reduce(np.ix_(*reform))
+    result = np.tensordot(tensor,payoff_tensor,reform.shape[0])
     return result
-        
-    
-def grad(payoff_tensor,strategies,player):
-    res = np.zeros(len(strategies[player]))
-    for i in range(len(strategies[player])):
-        for p in itertools.product(*[[j for j in range(payoff_tensor.shape[k])] if k!=player else [i] for k in range(len(payoff_tensor.shape[:-1]))]):
-            var = 1
-            for q in range(len(strategies)):
-                if q!=player:
-                    var*=strategies[q][p[q]]
-                else:
-                    var*=1
-            res[i]+=var*payoff_tensor[p][player]
-    return res
+  
+def n_simplex_proj(vec):
+    u = np.sort(vec)[::-1]
+    D = u.shape[0]
+    rho = 0
+    for i in range(D):
+        val= u[i]+(1/(i+1))*(1-np.sum(u[:i+1]))
+        if val>0:
+            rho =i+1
+    mu = 1/rho*(1-np.sum(u[:rho]))
+    return np.maximum(vec+mu*np.ones(D),np.zeros(D))
 
-def evolve(payoff_tensor,strategies,player,gamma):
-    var = strategies[player]+gamma*grad(payoff_tensor,strategies,player)
-    for i in range(var.shape[0]):
-        var[i]= max(var[i],0)
-    var = vector_normalise(var)
-    return var
-
-def tensor_grad_descent(payoff_tensor,init_strategies,iters,gamma,noise):
-    print("Init Expected Utility:")
-    strategies = init_strategies
-    n_players = len(strategies)
-    for i in range(n_players):
-        strategies[i]=vector_normalise(strategies[i])
-    print(expectation(payoff_tensor,strategies))
-    history = [[np.zeros(len(init_strategies[j]))for j in range(n_players)] for k in range(iters+1)]
-    history[0]=strategies
-    for iteration in range(iters):
-        new_strategies = [np.zeros(len(strategies[j])) for j in range(n_players)]
-        for player in range(n_players):
-            new_strategies[player]=evolve(payoff_tensor,strategies,player,gamma)+noise*((iters-iteration)/(iters))*np.random.dirichlet([1 for i in range(len(new_strategies[player]))])
-            new_strategies[player]=vector_normalise(new_strategies[player])
-            history[iteration+1][player]=new_strategies[player]
-        strategies = new_strategies
-    print("End Expected Utility:")
-    print(expectation(payoff_tensor,strategies))
-    print('End Strategies:')
-    print(strategies)
-    return history
-
-
-def vector_normalise(v):
-    return v/v.sum()
-
-def plotter(history):
-    player_strategies = [[history[i][player] for i in range(len(history))]for player in range(len(history[0]))]
-    colors = ['r','g','b','y','m','k']
-    fig, axs = plt.subplots(len(history[0]),figsize = (15,15))
-    fig.suptitle("Orbits")
-    for i in range(len(history[0])):
-        axs[i].scatter([player_strategies[i][j][0] for j in range(len(history))],[player_strategies[i][j][1] for j in range(len(history))],color=colors[i],s=2)
-        axs[i].set_xlim(0,1)
-        axs[i].set_ylim(0,1)
-    return None
-    
-def Jacobian(payoff_tensor,strategies):
+def jacobian(payoff_tensor,strategies):
     n_players = strategies.shape[0]
     n_choices = strategies.shape[1]
-    jacobian= np.zeros([n_players*n_choices,n_players*n_choices])
+    jacob= np.zeros([n_players*n_choices,n_players*n_choices])
     for i in range(n_players):
         for j in range(n_players):
             for k in range(n_choices):
                 for l in range(n_choices):
-                    jacobian[i*n_choices+k,j*n_choices+l]=d2_func(payoff_tensor,strategies,i,j,k,l)
-    return jacobian
+                    jacob[i*n_choices+k,j*n_choices+l]=d2_func(payoff_tensor,strategies,i,j,k,l)
+    return jacob
                 
 
 def d2_func(payoff_tensor,strategies,i,j,k,l):
@@ -139,20 +88,20 @@ def d2_func(payoff_tensor,strategies,i,j,k,l):
     return prod
     
 
-def SymplecticGradientAdjustment(payoff_tensor,strategies,epsilon):
-    simul_grad = np.ravel(SimultaneousGrad(payoff_tensor,strategies))
-    jacobian = Jacobian(payoff_tensor,strategies)
-    antisymm = (jacobian-jacobian.transpose())/2
-    adj =  np.dot(antisymm,simul_grad)
-    dH = np.dot(jacobian.transpose(),simul_grad)
-    align = np.sign(np.dot(dH,simul_grad)*np.dot(adj,dH)+epsilon)
-    return simul_grad + align*adj
+def symplectic_grad_adj(payoff_tensor,strategies,epsilon):
+    sim_grad = np.ravel(simul_grad(payoff_tensor,strategies))
+    jacob = jacobian(payoff_tensor,strategies)
+    antisymm = (jacob-jacob.transpose())/2
+    adj =  np.dot(antisymm,sim_grad)
+    dH = np.dot(jacob.transpose(),sim_grad)
+    align = np.sign(np.dot(dH,sim_grad)*np.dot(adj,dH)+epsilon)
+    return sim_grad + align*adj
 
 #clear each player must have the same num of choices a tad cringe
-def SimultaneousGrad(payoff_tensor,strategies):
+def simul_grad(payoff_tensor,strategies):
     n_players = strategies.shape[0]
     n_choices = strategies.shape[1]
-    simul_grad = np.zeros([n_players,n_choices])
+    sim_grad = np.zeros([n_players,n_choices])
     for i in range(n_players):
         for j in range(n_choices):
             strat_copy = copy.deepcopy(strategies)
@@ -160,10 +109,10 @@ def SimultaneousGrad(payoff_tensor,strategies):
             strat_copy[i,j]=1
             tensor = np.multiply.reduce(np.ix_(*strat_copy))
             prod = np.tensordot(tensor,payoff_tensor,n_players)[i]
-            simul_grad[i,j]=prod
-    return simul_grad
+            sim_grad[i,j]=prod
+    return sim_grad
     
-def Optimiser(payoff_tensor,init_strategies,learning_rate,iters,noise_param):
+def optimiser(payoff_tensor,init_strategies,learning_rate,iters,noise_param):
     n_players = init_strategies.shape[0]
     n_choices = init_strategies.shape[1]
     history = np.zeros([iters,n_players,n_choices])
@@ -174,22 +123,23 @@ def Optimiser(payoff_tensor,init_strategies,learning_rate,iters,noise_param):
         noise = noise_param*np.random.dirichlet([1 for k in range(n_players*n_choices)])
         for j in range(n_players):
             strategies[j,:]=history[i,j,:]
-        adj = SymplecticGradientAdjustment(payoff_tensor,strategies,0.1)
+        adj = symplectic_grad_adj(payoff_tensor,strategies,0.1)
         delta = adj.reshape([n_players,n_choices])
         strategies= strategies +learning_rate*delta+noise.reshape([n_players,n_choices])*(iters-i)/iters
-        strategies = normalize(strategies)
+        for k in range(n_players):
+            strategies[k] = n_simplex_proj(strategies[k])
     return history
-    
-def normalize(matrix):
-    bools = np.heaviside(matrix,0)
-    matrix = matrix*bools
-    sums = matrix.sum(axis=1)
-    for i in range(matrix.shape[0]):
-        if sums[i]==0:
-            sums[i]=1
-            matrix[i,:]=np.random.dirichlet([1 for i in range(matrix.shape[1])])
-    newsum = np.array([np.array([sums[i] for j in range(matrix.shape[1])])for i in range(matrix.shape[0])])
-    return matrix/newsum
+
+def plotter(history):
+    player_strategies = [[history[i][player] for i in range(len(history))]for player in range(len(history[0]))]
+    colors = ['r','g','b','y','m','k']
+    fig, axs = plt.subplots(len(history[0]),figsize = (15,15))
+    fig.suptitle("Orbits")
+    for i in range(len(history[0])):
+        axs[i].scatter([player_strategies[i][j][0] for j in range(len(history))],[player_strategies[i][j][1] for j in range(len(history))],color=colors[i],s=2)
+        axs[i].set_xlim(0,1)
+        axs[i].set_ylim(0,1)
+    return None    
     
         
     
